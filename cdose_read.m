@@ -1,57 +1,104 @@
-
-
-
-function data = cdose_read(pathname, s_value, method, cam)
-    % this function will create a struct with images for all c-dose folders in
-    % the path
+function data = cdose_read(pathname, options)
+%{
+    this function will create a struct with images for all c-dose folders in
+    the path
     
-    % pathname -            string to folder containg all the data folders
+INPUTS:
+    pathname -              string to folder containg all the data folders
     
-    % s_value -             takes a string; use 's0' for background frames of if custom mode, for cherenkov frames in
-    %                       cherenkov mode use 's1'
-
-    % method -              takes a string; to read in with summed images, or averaged images, use 'sum', or 'mean'
+    name value pairs
+    's_value' -         	takes a string; use 's0' for background frames of if custom mode, for cherenkov frames in
+                            cherenkov mode use 's1'. Default is 's0'.
     
-    % cam -                 takes a string; 'cam0' or 'cam1'
-    % by Dan Alexander, 2020
+    'cam' -               	takes a string; 'cam0' or 'cam1' Default is
+                          	'cam0'.
+    
+    'method' -            	takes a string; to read in with summed images, or
+                         	averaged images, use 'sum', or 'mean'. Default is 'sum'.
+    
+    'names' -            	takes cell array of char vectors containing
+                         	field names for output struct. Must match number of folders in
+                          	pathname. default uses descriptions in the folders.
+OUTPUTS:
+    data -                  structure containing fields specified by 'names' with images.
+                
+    by Dan Alexander, 2020
+%}
+    arguments
+        pathname char
+        options.s_value char = 's0'
+        options.cam char = 'cam0';
+        options.method char = 'sum';
+        options.names (1,:) cell = {};
+    end
     
     data = struct();
     folders = dir(pathname);
     folders = folders(3:end); % first two entries are meaningless
     
-
-    for i=1:numel(folders)
+%     fig = uifigure;
+%     d = uiprogressdlg(fig,'Title','Please Wait',...
+%         'Message','Reading in Data...');
+%     d.Value = 0;
+    f = waitbar(0, 'Loading Data.....');
+    pause(0.2)
+    N = numel(folders);
+    
+    if isfield(options, 'names') == 1 
+        firstletters = 0;
+        for i=1:size(options.names, 2)
+            temp = options.names{i};
+            if ~isletter(temp(1))
+                firstletters = firstletters + 1;
+            end
+        end
+        if size(options.names, 2) ~= N
+            disp('Error: not enough names')
+            return
+        elseif firstletters ~= 0
+            disp('Error: names must all start with letters, no numbers/symbols allowed')
+            return
+        end
+    end
+    
+    for i=1:N
         folder_contents = dir(fullfile(folders(i).folder, folders(i).name)); % check contents of this folder
         m = {folder_contents.name}; % make cell array of content names
-        if s_value == 's1' && sum(contains(m, 'meas_s1')) == 0 % means this folder is custom mode
-            s_value_temp = 's0';
-        else
-            s_value_temp = s_value;
-        end
         
         if sum(strcmp('settings.ini', m)) % check if folder has a settings.ini file
             info = ini2struct(fullfile(folders(i).folder, folders(i).name, 'settings.ini')); % get contents of settings.ini file
             desc = info.general.description; % get the description
-            if ~isletter(desc(1))
+            
+            if isfield(options, 'names') == 1 
+                name = options.names{i};
+            elseif ~isletter(desc(1))
                 name = ['f_', desc];
             else
                 name = desc;
             end
-            
-            if info.general.saveimage == '0'
-                disp('Reading dovi...');
-                if strcmp(method,'mean')
-                    data.(name) = mean(read_dovi([fullfile(folders(i).folder, folders(i).name), '/meas_',s_value_temp,'_',cam,'.dovi']), 3);
-                elseif strcmp(method,'sum')
-                    data.(name) = sum(read_dovi([fullfile(folders(i).folder, folders(i).name), '/meas_',s_value_temp,'_',cam,'.dovi']), 3);
-                end
-            elseif info.general.saveimage == '1'
-                data.(name) = double(imread([fullfile(folders(i).folder, folders(i).name), '/meas_',s_value_temp,'_',cam,'.png']));
+
+            if strcmp(options.method,'mean')
+                data.(name) = mean(read_dovi([fullfile(folders(i).folder, folders(i).name), '/meas_',options.s_value,'_',options.cam,'.dovi']), 3);
+            elseif strcmp(options.method,'sum')
+                data.(name) = sum(read_dovi([fullfile(folders(i).folder, folders(i).name), '/meas_',options.s_value,'_',options.cam,'.dovi']), 3);
             end
+            
+%             if info.general.saveimage == '0'
+%                 disp('Reading dovi...');
+%                 if strcmp(method,'mean')
+%                     data.(name) = mean(read_dovi([fullfile(folders(i).folder, folders(i).name), '/meas_',s_value_temp,'_',cam,'.dovi']), 3);
+%                 elseif strcmp(method,'sum')
+%                     data.(name) = sum(read_dovi([fullfile(folders(i).folder, folders(i).name), '/meas_',s_value_temp,'_',cam,'.dovi']), 3);
+%                 end
+%             elseif info.general.saveimage == '1'
+%                 data.(name) = double(imread([fullfile(folders(i).folder, folders(i).name), '/meas_',s_value_temp,'_',cam,'.png']));
+%             end
         end
-        disp([num2str(100*i/numel(folders), '%.2f'), ' % complete']);
+        waitbar(i/N, f, 'Loading Data.....');
+%         d.Value = i/numel(folders);
+%         pause(0.2)
+%         disp(i/numel(folders));
     end
     
-    
-    
-    
+    close(f)
+end
