@@ -35,11 +35,7 @@ OUTPUTS:
     data = struct();
     folders = dir(pathname);
     folders = folders(3:end); % first two entries are meaningless
-    
-%     fig = uifigure;
-%     d = uiprogressdlg(fig,'Title','Please Wait',...
-%         'Message','Reading in Data...');
-%     d.Value = 0;
+
     f = waitbar(0, 'Loading Data.....');
     pause(0.2)
     N = numel(folders);
@@ -83,21 +79,10 @@ OUTPUTS:
                 data.(name) = sum(read_dovi([fullfile(folders(i).folder, folders(i).name), '/meas_',options.s_value,'_',options.cam,'.dovi']), 3);
             end
             
-%             if info.general.saveimage == '0'
-%                 disp('Reading dovi...');
-%                 if strcmp(method,'mean')
-%                     data.(name) = mean(read_dovi([fullfile(folders(i).folder, folders(i).name), '/meas_',s_value_temp,'_',cam,'.dovi']), 3);
-%                 elseif strcmp(method,'sum')
-%                     data.(name) = sum(read_dovi([fullfile(folders(i).folder, folders(i).name), '/meas_',s_value_temp,'_',cam,'.dovi']), 3);
-%                 end
-%             elseif info.general.saveimage == '1'
-%                 data.(name) = double(imread([fullfile(folders(i).folder, folders(i).name), '/meas_',s_value_temp,'_',cam,'.png']));
-%             end
+
         end
         waitbar(i/N, f, 'Loading Data.....');
-%         d.Value = i/numel(folders);
-%         pause(0.2)
-%         disp(i/numel(folders));
+
     end
     
     close(f)
