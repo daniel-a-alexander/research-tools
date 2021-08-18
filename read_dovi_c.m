@@ -1,10 +1,9 @@
-function data = read_dovi(file_name, zrange)
+function data = read_dovi_c(file_name)
 
 % Copyright DoseOptics LLC 2017
 %
 % Reads DOVI data format into Matlab
 % @param file_name - File name/location of DOVI file (e.g. 'test.dovi')
-% @param zrange - [Optional] Range of slices to load (e.g. [1 40])
 % @param data - Output data in Matlab
 
 
